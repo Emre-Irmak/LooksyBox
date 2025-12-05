@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pink Theme CSS Variables */
+:root {
+  /* Light theme colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  --shadow-light: rgba(0, 0, 0, 0.1);
+  --shadow-medium: rgba(0, 0, 0, 0.15);
+  --accent-color: #3b82f6;
+  --accent-hover: #2563eb;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+}
+
+.dark {
+  /* Dark theme colors */
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --bg-tertiary: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --border-color: rgba(75, 85, 99, 0.3);
+  --border-light: rgba(75, 85, 99, 0.2);
+  --shadow-light: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.4);
+  --accent-color: #60a5fa;
+  --accent-hover: #3b82f6;
+  --success-color: #34d399;
+  --warning-color: #fbbf24;
+  --error-color: #f87171;
+}
+
+.pink {
+  /* Pink theme colors - soft pink palette */
+  --bg-primary: #fef7f7;
+  --bg-secondary: #fdf2f8;
+  --bg-tertiary: #fce7f3;
+  --text-primary: #831843;
+  --text-secondary: #be185d;
+  --text-muted: #ec4899;
+  --border-color: #f9a8d4;
+  --border-light: #fbcfe8;
+  --shadow-light: rgba(236, 72, 153, 0.1);
+  --shadow-medium: rgba(236, 72, 153, 0.2);
+  --accent-color: #ec4899;
+  --accent-hover: #be185d;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  
+  /* Pink gradient backgrounds */
+  --gradient-primary: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+  --gradient-secondary: linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%);
+  --gradient-accent: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+}
+
+/* Global styles for pink theme */
+.pink body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.pink .bg-white {
+  background-color: var(--bg-primary) !important;
+}
+
+.pink .bg-gray-50 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.pink .bg-gray-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.pink .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.pink .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+.pink .text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+.pink .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+.pink .border-gray-300 {
+  border-color: var(--border-light) !important;
+}
+
+/* Pink theme specific components */
+.pink-theme-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px -1px var(--shadow-light);
+}
+
+.pink-theme-button {
+  background: var(--gradient-accent);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.pink-theme-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 15px var(--shadow-medium);
+}
+
+.pink-theme-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.pink-theme-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+}
