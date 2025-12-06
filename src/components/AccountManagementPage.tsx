@@ -16,6 +16,7 @@ const AccountManagementPage: React.FC = React.memo(() => {
     totalFavorites: 0,
     totalLikedProducts: 0,
     totalCartItems: 0,
+    totalSharedProducts: 0,
     memberSince: '',
     lastLogin: '',
     profileCompleteness: 0
@@ -24,6 +25,9 @@ const AccountManagementPage: React.FC = React.memo(() => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSendingSMS, setIsSendingSMS] = useState(false);
   const [phoneError, setPhoneError] = useState('');
+  const [sharedProducts, setSharedProducts] = useState<any[]>([]);
+  const [showSharedProducts, setShowSharedProducts] = useState(false);
+  const [loadingSharedProducts, setLoadingSharedProducts] = useState(false);
   
 
   // Kullanıcı istatistiklerini hesapla
@@ -44,12 +48,13 @@ const AccountManagementPage: React.FC = React.memo(() => {
         totalFavorites: favorites.length,
         totalLikedProducts: likedProducts.length,
         totalCartItems: cartItems.length,
+        totalSharedProducts: sharedProducts.length,
         memberSince: joinDate.toLocaleDateString('tr-TR'),
         lastLogin: lastSignIn ? lastSignIn.toLocaleDateString('tr-TR') : 'Bilinmiyor',
         profileCompleteness: completeness
       });
     }
-  }, [user, profile, favorites, cartItems, likedProducts]);
+  }, [user, profile, favorites, cartItems, likedProducts, sharedProducts]);
 
   // Sayfa yüklendiğinde profil verilerini yenile
   useEffect(() => {
@@ -63,6 +68,55 @@ const AccountManagementPage: React.FC = React.memo(() => {
       return () => clearTimeout(timeoutId);
     }
   }, [user, profile, refreshProfile]);
+
+  // Kullanıcının paylaştığı ürünleri çek
+  useEffect(() => {
+    const fetchSharedProducts = async () => {
+      if (!user?.id) return;
+      
+      setLoadingSharedProducts(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('created_by', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Paylaşılan ürünler çekilirken hata:', error);
+          setSharedProducts([]);
+        } else {
+          // Veritabanı verilerini Product formatına dönüştür
+          const formattedProducts = (data || []).map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            imageUrl: item.image_url,
+            images: item.images || [item.image_url],
+            price: item.price || undefined,
+            originalPrice: item.original_price || undefined,
+            discount: item.discount,
+            category: item.category,
+            subcategory: item.subcategory,
+            description: item.description,
+            store: item.store || item.brand,
+            likes: item.like_count || 0,
+            productLink: item.product_link || item.affiliate_url,
+            shareDate: item.created_at,
+            rating: item.rating || 0,
+            reviews: item.review_count || 0
+          }));
+          setSharedProducts(formattedProducts);
+        }
+      } catch (error) {
+        console.error('Paylaşılan ürünler çekilirken hata:', error);
+        setSharedProducts([]);
+      } finally {
+        setLoadingSharedProducts(false);
+      }
+    };
+
+    fetchSharedProducts();
+  }, [user]);
 
 
 
@@ -715,7 +769,287 @@ const AccountManagementPage: React.FC = React.memo(() => {
               Profil Tamamlanma
                 </div>
               </div>
+
+          {/* Paylaşılan Ürünler */}
+          <div style={{ 
+            background: isDarkMode 
+              ? 'rgba(31, 41, 55, 0.8)' 
+              : 'rgba(255, 255, 255, 0.8)',
+            borderRadius: '15px',
+            padding: '1.5rem',
+            border: isDarkMode 
+              ? '1px solid rgba(75, 85, 99, 0.3)' 
+              : '1px solid rgba(255, 255, 255, 0.3)',
+            textAlign: 'center',
+            boxShadow: isDarkMode 
+              ? '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
+              : '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onClick={() => setShowSharedProducts(!showSharedProducts)}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = isDarkMode 
+              ? '0 15px 35px -5px rgba(0, 0, 0, 0.4)'
+              : '0 15px 35px -5px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = isDarkMode 
+              ? '0 10px 25px -5px rgba(0, 0, 0, 0.3)'
+              : '0 10px 25px -5px rgba(0, 0, 0, 0.1)';
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🛍️</div>
+            <div style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 'bold', 
+              color: isDarkMode ? '#a78bfa' : '#7c3aed',
+              marginBottom: '0.25rem'
+            }}>
+              {userStats.totalSharedProducts || 0}
             </div>
+            <div style={{ 
+              color: isDarkMode ? '#9ca3af' : '#6b7280',
+              fontSize: '0.875rem',
+              fontWeight: '500'
+            }}>
+              Paylaşılan Ürün
+            </div>
+            <div style={{ 
+              color: isDarkMode ? '#6b7280' : '#9ca3af',
+              fontSize: '0.75rem',
+              marginTop: '0.25rem',
+              fontStyle: 'italic'
+            }}>
+              {showSharedProducts ? 'Gizlemek için tıklayın' : 'Görmek için tıklayın'}
+            </div>
+          </div>
+            </div>
+
+        {/* Shared Products Section */}
+        {showSharedProducts && (
+          <div style={{ 
+            marginBottom: '3rem',
+            animation: 'fadeInUp 0.8s ease-out 0.4s both'
+          }}>
+            <h2 style={{ 
+              color: isDarkMode ? '#f9fafb' : '#1f2937',
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              marginBottom: '1.5rem',
+              textAlign: 'center'
+            }}>
+              Paylaştığım Ürünler
+            </h2>
+            
+            {loadingSharedProducts ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem 2rem',
+                background: isDarkMode 
+                  ? 'rgba(31, 41, 55, 0.5)' 
+                  : 'rgba(255, 255, 255, 0.5)',
+                borderRadius: '15px',
+                border: isDarkMode 
+                  ? '1px solid rgba(75, 85, 99, 0.3)' 
+                  : '1px solid rgba(255, 255, 255, 0.3)'
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  border: '2px solid rgba(102, 126, 234, 0.3)',
+                  borderTop: '2px solid #667eea',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  margin: '0 auto'
+                }} />
+                <p style={{
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                  fontSize: '1rem',
+                  marginTop: '1rem'
+                }}>
+                  Yükleniyor...
+                </p>
+              </div>
+            ) : sharedProducts.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem 2rem',
+                background: isDarkMode 
+                  ? 'rgba(31, 41, 55, 0.5)' 
+                  : 'rgba(255, 255, 255, 0.5)',
+                borderRadius: '15px',
+                border: isDarkMode 
+                  ? '1px solid rgba(75, 85, 99, 0.3)' 
+                  : '1px solid rgba(255, 255, 255, 0.3)'
+              }}>
+                <div style={{
+                  fontSize: '3rem',
+                  marginBottom: '1rem'
+                }}>
+                  📦
+                </div>
+                <p style={{
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                  fontSize: '1.125rem'
+                }}>
+                  Henüz paylaştığınız ürün yok
+                </p>
+                <p style={{
+                  color: isDarkMode ? '#6b7280' : '#9ca3af',
+                  fontSize: '0.875rem',
+                  marginTop: '0.5rem'
+                }}>
+                  Paylaştığınız ürünler burada görünecek
+                </p>
+                <button
+                  onClick={() => navigate('/share-product')}
+                  style={{
+                    marginTop: '1.5rem',
+                    padding: '0.75rem 2rem',
+                    background: isDarkMode 
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                  }}
+                >
+                  İlk Ürününü Paylaş
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '1rem'
+              }}>
+                {sharedProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    onClick={() => navigate(`/product/${product.id}`)}
+                    style={{
+                      background: isDarkMode 
+                        ? 'rgba(31, 41, 55, 0.8)' 
+                        : 'rgba(255, 255, 255, 0.8)',
+                      borderRadius: '15px',
+                      padding: '1rem',
+                      border: isDarkMode 
+                        ? '1px solid rgba(75, 85, 99, 0.3)' 
+                        : '1px solid rgba(255, 255, 255, 0.3)',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.boxShadow = isDarkMode 
+                        ? '0 15px 30px -5px rgba(0, 0, 0, 0.3)'
+                        : '0 15px 30px -5px rgba(0, 0, 0, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{
+                      width: '100%',
+                      height: '120px',
+                      borderRadius: '10px',
+                      marginBottom: '0.75rem',
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <img
+                        src={product.imageUrl}
+                        alt={product.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        background: isDarkMode 
+                          ? 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
+                          : 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                        display: 'none',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '2rem'
+                      }}>
+                        🛍️
+                      </div>
+                    </div>
+                    <h3 style={{
+                      color: isDarkMode ? '#f9fafb' : '#1f2937',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '0.25rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {product.title}
+                    </h3>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '0.5rem'
+                    }}>
+                      <p style={{
+                        color: isDarkMode ? '#60a5fa' : '#3b82f6',
+                        fontSize: '0.875rem',
+                        fontWeight: 'bold',
+                        margin: 0
+                      }}>
+                        {product.price || 'Fiyat yok'}
+                      </p>
+                      {product.likes !== undefined && product.likes > 0 && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          color: isDarkMode ? '#ef4444' : '#dc2626',
+                          fontSize: '0.75rem'
+                        }}>
+                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                          {product.likes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Favorites Section */}
         {showLikedProducts && (

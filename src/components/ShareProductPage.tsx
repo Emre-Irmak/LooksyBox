@@ -910,6 +910,13 @@ const ShareProductPage = ({ onProductShared }: ShareProductPageProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Kullanıcı giriş kontrolü
+    if (!user || !user.id) {
+      alert('Ürün paylaşmak için lütfen giriş yapın.');
+      navigate('/login');
+      return;
+    }
+    
     // Trendyol kontrolü
     if (formData.productLink && !isTrendyolUrl(formData.productLink)) {
       alert('Sadece Trendyol ürünleri paylaşılabilir. Lütfen Trendyol linki girin.');
@@ -972,13 +979,14 @@ const ShareProductPage = ({ onProductShared }: ShareProductPageProps) => {
         images: imagesJsonb.length > 0 ? imagesJsonb : null,
         image_url: allImages[coverImageIndex] || allImages[0] || null,
         cover_image_index: coverImageIndex,
-        created_by: user?.id || null,
+        created_by: user.id, // Kullanıcı giriş kontrolü yapıldığı için artık user.id garantili
         rating: 0,
         review_count: 0,
         like_count: 0
       };
 
       console.log('📝 Veritabanına kaydedilecek veri:', insertData);
+      console.log('👤 Kullanıcı ID (created_by):', user.id);
 
       const { data: insertedProduct, error: insertError } = await supabase
         .from('products')
@@ -1091,6 +1099,114 @@ const ShareProductPage = ({ onProductShared }: ShareProductPageProps) => {
       setIsSubmitting(false);
     }
   };
+
+  // Kullanıcı giriş kontrolü - eğer giriş yapılmamışsa mesaj göster
+  if (!user || !user.id) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: themeMode === 'pink' ? '#fef7f7' : isDarkMode ? '#111827' : '#f8fafc',
+        padding: '0.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          maxWidth: '600px',
+          width: '100%',
+          margin: '0 auto',
+          backgroundColor: themeMode === 'pink' ? '#fef7f7' : isDarkMode ? '#1f2937' : 'white',
+          borderRadius: '16px',
+          boxShadow: themeMode === 'pink' ? '0 4px 6px -1px rgba(236, 72, 153, 0.2)' : isDarkMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden',
+          border: themeMode === 'pink' ? '1px solid rgba(249, 168, 212, 0.3)' : isDarkMode ? '1px solid rgba(75, 85, 99, 0.3)' : '1px solid rgba(229, 231, 235, 0.5)',
+          padding: '3rem 2rem',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            fontSize: '4rem',
+            marginBottom: '1.5rem'
+          }}>
+            🔒
+          </div>
+          <h1 style={{
+            margin: '0 0 1rem 0',
+            fontSize: '1.75rem',
+            fontWeight: 'bold',
+            color: themeMode === 'pink' ? '#be185d' : isDarkMode ? '#f3f4f6' : '#111827'
+          }}>
+            Ürün Paylaşabilmek İçin Giriş Yapmanız Gerekiyor
+          </h1>
+          <p style={{
+            margin: '0 0 2rem 0',
+            fontSize: '1rem',
+            color: themeMode === 'pink' ? '#9f1239' : isDarkMode ? '#d1d5db' : '#6b7280',
+            lineHeight: '1.6'
+          }}>
+            Ürün paylaşmak ve Looksy topluluğuna katılmak için lütfen giriş yapın veya yeni bir hesap oluşturun.
+          </p>
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => navigate('/login')}
+              style={{
+                backgroundColor: themeMode === 'pink' ? '#ec4899' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.75rem',
+                padding: '0.75rem 2rem',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: themeMode === 'pink' ? '0 4px 6px -1px rgba(236, 72, 153, 0.3)' : '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = themeMode === 'pink' ? '#db2777' : '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = themeMode === 'pink' ? '0 6px 12px -1px rgba(236, 72, 153, 0.4)' : '0 6px 12px -1px rgba(59, 130, 246, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = themeMode === 'pink' ? '#ec4899' : '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = themeMode === 'pink' ? '0 4px 6px -1px rgba(236, 72, 153, 0.3)' : '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+              }}
+            >
+              Giriş Yap
+            </button>
+            <button
+              onClick={() => navigate('/signup')}
+              style={{
+                backgroundColor: 'transparent',
+                color: themeMode === 'pink' ? '#ec4899' : '#3b82f6',
+                border: `2px solid ${themeMode === 'pink' ? '#ec4899' : '#3b82f6'}`,
+                borderRadius: '0.75rem',
+                padding: '0.75rem 2rem',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = themeMode === 'pink' ? '#fdf2f8' : '#eff6ff';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              Kayıt Ol
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

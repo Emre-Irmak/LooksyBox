@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import ProductStatsModal from './ProductStatsModal';
 import { trackProductView } from '../utils/productStatsUtils';
@@ -115,6 +115,8 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
         
         setProduct(productData);
         console.log('✅ Ürün state\'e set edildi');
+        console.log('🖼️ Product images:', productData?.images);
+        console.log('🖼️ Product imageUrl:', productData?.imageUrl);
         
         // Benzer ürünler için tüm ürünleri yükle
         console.log('📦 Benzer ürünler için tüm ürünler yükleniyor...');
@@ -140,9 +142,48 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
   // Benzer ürünleri bul
   const similarProducts = product ? findSimilarProducts(product, allProducts, 8) : [];
   
-  // Çoklu fotoğraf desteği
-  const productImages = product?.images || [product?.imageUrl].filter(Boolean);
-  const currentImage = productImages[selectedImageIndex];
+  // Çoklu fotoğraf desteği - cover_image_index'e göre başlangıç indeksini ayarla
+  const productImages = useMemo(() => {
+    if (!product) return [];
+    
+    // Önce images array'ini kontrol et
+    if (product.images && product.images.length > 0) {
+      return product.images;
+    }
+    
+    // Eğer images yoksa imageUrl'i kullan
+    if (product.imageUrl) {
+      return [product.imageUrl];
+    }
+    
+    return [];
+  }, [product]);
+  
+  const initialImageIndex = useMemo(() => {
+    if (!product || productImages.length === 0) return 0;
+    
+    if (product.coverImageIndex !== undefined && 
+        product.coverImageIndex >= 0 && 
+        product.coverImageIndex < productImages.length) {
+      return product.coverImageIndex;
+    }
+    
+    return 0;
+  }, [product, productImages.length]);
+  
+  // Eğer selectedImageIndex geçerli değilse, initialImageIndex'e ayarla
+  useEffect(() => {
+    if (product && productImages.length > 0) {
+      if (selectedImageIndex >= productImages.length || selectedImageIndex < 0) {
+        setSelectedImageIndex(initialImageIndex);
+      }
+    } else if (product && productImages.length === 0) {
+      // Eğer hiç fotoğraf yoksa, 0'a ayarla
+      setSelectedImageIndex(0);
+    }
+  }, [product, productImages.length, initialImageIndex, selectedImageIndex]);
+  
+  const currentImage = productImages[selectedImageIndex] || productImages[0] || product?.imageUrl || '';
 
   // Component mount olduğunda ve route değiştiğinde scroll pozisyonunu sıfırla
   useEffect(() => {
@@ -474,55 +515,82 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
               position: 'relative'
             }}>
                {/* Mağaza Badge - Fotoğrafın Üstünde Orta */}
-               <div style={{
-                 position: 'absolute',
-                 top: '2rem',
-                 left: '50%',
-                 transform: 'translateX(-50%)',
-                 backgroundColor: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                 backdropFilter: 'blur(10px)',
-                 color: isDarkMode ? '#f9fafb' : '#1f2937',
-                 padding: '0.75rem 1.5rem',
-                 borderRadius: '1.5rem',
-                 fontSize: '0.875rem',
-                 fontWeight: '600',
-                 boxShadow: isDarkMode ? '0 8px 20px -5px rgba(0, 0, 0, 0.3)' : '0 8px 20px -5px rgba(0, 0, 0, 0.1)',
-                 border: isDarkMode ? '1px solid rgba(75, 85, 99, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)',
-                 display: 'flex',
-                 alignItems: 'center',
-                 gap: '0.5rem',
-                 zIndex: 10
-               }}>
+               {(product.store || product.brand) && (
                  <div style={{
-                   width: '1rem',
-                   height: '1rem',
-                   backgroundColor: '#10b981',
-                   borderRadius: '50%',
+                   position: 'absolute',
+                   top: '2rem',
+                   left: '50%',
+                   transform: 'translateX(-50%)',
+                   backgroundColor: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                   backdropFilter: 'blur(10px)',
+                   color: isDarkMode ? '#f9fafb' : '#1f2937',
+                   padding: '0.75rem 1.5rem',
+                   borderRadius: '1.5rem',
+                   fontSize: '0.875rem',
+                   fontWeight: '600',
+                   boxShadow: isDarkMode ? '0 8px 20px -5px rgba(0, 0, 0, 0.3)' : '0 8px 20px -5px rgba(0, 0, 0, 0.1)',
+                   border: isDarkMode ? '1px solid rgba(75, 85, 99, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)',
                    display: 'flex',
                    alignItems: 'center',
-                   justifyContent: 'center'
+                   gap: '0.5rem',
+                   zIndex: 10
                  }}>
                    <div style={{
-                     width: '0.5rem',
-                     height: '0.5rem',
-                     backgroundColor: 'white',
-                     borderRadius: '50%'
-                   }} />
+                     width: '1rem',
+                     height: '1rem',
+                     backgroundColor: '#10b981',
+                     borderRadius: '50%',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center'
+                   }}>
+                     <div style={{
+                       width: '0.5rem',
+                       height: '0.5rem',
+                       backgroundColor: 'white',
+                       borderRadius: '50%'
+                     }} />
+                   </div>
+                   {product.store || product.brand}
                  </div>
-                 {product.store || 'Trendyol'}
-               </div>
+               )}
 
-              <img
-                src={currentImage}
-                alt={product.title}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '500px',
-                  objectFit: 'contain',
+              {currentImage ? (
+                <img
+                  src={currentImage}
+                  alt={product.title}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '500px',
+                    objectFit: 'contain',
+                    borderRadius: '1rem',
+                    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.1)'
+                  }}
+                  onError={(e) => {
+                    console.error('Fotoğraf yüklenemedi:', currentImage);
+                    // Fallback: boş bir placeholder göster
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '500px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
                   borderRadius: '1rem',
-                  boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.1)'
-                }}
-              />
+                  color: isDarkMode ? '#9ca3af' : '#6b7280'
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <svg width="64" height="64" fill="currentColor" viewBox="0 0 24 24" style={{ marginBottom: '1rem', opacity: 0.5 }}>
+                      <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                    </svg>
+                    <p style={{ margin: 0, fontSize: '1rem' }}>Fotoğraf bulunamadı</p>
+                  </div>
+                </div>
+              )}
               
               {/* Çoklu fotoğraf navigasyonu */}
               {productImages.length > 1 && (
@@ -532,11 +600,15 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                   left: '50%',
                   transform: 'translateX(-50%)',
                   display: 'flex',
+                  flexWrap: 'wrap',
                   gap: '0.5rem',
                   backgroundColor: 'rgba(0, 0, 0, 0.7)',
                   padding: '0.5rem',
                   borderRadius: '1rem',
-                  backdropFilter: 'blur(10px)'
+                  backdropFilter: 'blur(10px)',
+                  maxWidth: 'calc(100% - 2rem)',
+                  justifyContent: 'center',
+                  alignItems: 'center'
                 }}>
                   {productImages.map((image: string, index: number) => (
                     <button
@@ -545,6 +617,8 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                       style={{
                         width: '3rem',
                         height: '3rem',
+                        minWidth: '3rem',
+                        flexShrink: 0,
                         borderRadius: '0.5rem',
                         border: selectedImageIndex === index ? '2px solid #6366f1' : '2px solid transparent',
                         background: `url(${image}) center/cover`,
@@ -595,16 +669,55 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                   justifyContent: 'space-between',
                   marginBottom: '0.5rem'
                 }}>
-                  <h1 style={{ 
-                    fontSize: '1.75rem',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    lineHeight: '1.2',
-                    margin: 0,
-                    flex: 1
-                  }}>
-                    {product.title}
-                  </h1>
+                  <div style={{ flex: 1 }}>
+                    <h1 style={{ 
+                      fontSize: '1.75rem',
+                      fontWeight: 'bold',
+                      color: 'white',
+                      lineHeight: '1.2',
+                      margin: 0,
+                      marginBottom: '0.5rem'
+                    }}>
+                      {product.title}
+                    </h1>
+                    {/* Category ve Subcategory */}
+                    {(product.category || product.subcategory) && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        flexWrap: 'wrap',
+                        marginTop: '0.5rem'
+                      }}>
+                        {product.category && (
+                          <span style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            padding: '0.375rem 0.75rem',
+                            borderRadius: '0.75rem',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            backdropFilter: 'blur(10px)'
+                          }}>
+                            {product.category}
+                          </span>
+                        )}
+                        {product.subcategory && (
+                          <span style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            padding: '0.375rem 0.75rem',
+                            borderRadius: '0.75rem',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            backdropFilter: 'blur(10px)'
+                          }}>
+                            {product.subcategory}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   
                   <div style={{ 
                     display: 'flex', 
@@ -755,9 +868,9 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                 </div>
                 
                 {/* Kullanıcı Bilgileri */}
-                {product.user && (
+                {product.user && product.created_by && (
                   <div 
-                    onClick={() => navigate(`/user/${product.user.id}`)}
+                    onClick={() => navigate(`/user/${product.created_by}`)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -858,12 +971,79 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                   </div>
                 )}
 
-                {product.category && (
+                {/* Store ve Brand Bilgileri */}
+                {(product.store || product.brand) && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {product.store && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '1rem',
+                        backdropFilter: 'blur(10px)'
+                      }}>
+                        <div style={{
+                          width: '0.75rem',
+                          height: '0.75rem',
+                          backgroundColor: '#10b981',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <div style={{
+                            width: '0.375rem',
+                            height: '0.375rem',
+                            backgroundColor: 'white',
+                            borderRadius: '50%'
+                          }} />
+                        </div>
+                        <span style={{
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontWeight: '500'
+                        }}>
+                          Mağaza: {product.store}
+                        </span>
+                      </div>
+                    )}
+                    {product.brand && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '1rem',
+                        backdropFilter: 'blur(10px)'
+                      }}>
+                        <span style={{
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontWeight: '500'
+                        }}>
+                          Marka: {product.brand}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {product.season && (
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    flexWrap: 'wrap'
+                    flexWrap: 'wrap',
+                    marginBottom: '0.5rem'
                   }}>
                     <span style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -874,34 +1054,8 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                       fontWeight: '500',
                       backdropFilter: 'blur(10px)'
                     }}>
-                      {product.category}
+                      {product.season}
                     </span>
-                    {product.subcategory && (
-                      <span style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '1rem',
-                        fontSize: '0.875rem',
-                        fontWeight: '500',
-                        backdropFilter: 'blur(10px)'
-                      }}>
-                        {product.subcategory}
-                      </span>
-                    )}
-                    {product.season && (
-                      <span style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '1rem',
-                        fontSize: '0.875rem',
-                        fontWeight: '500',
-                        backdropFilter: 'blur(10px)'
-                      }}>
-                        {product.season}
-                      </span>
-                    )}
                   </div>
                 )}
               </div>
@@ -967,6 +1121,33 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                 </p>
               </div>
 
+              {/* Hashtags */}
+              {product.hashtags && product.hashtags.length > 0 && (
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <h3 style={{ 
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    marginBottom: '0.5rem'
+                  }}>
+                    Etiketler
+                  </h3>
+                  <ul style={{ 
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    lineHeight: '1.8',
+                    paddingLeft: '1.5rem',
+                    margin: 0,
+                    listStyleType: 'disc'
+                  }}>
+                    {product.hashtags.map((tag, index) => (
+                      <li key={index} style={{ fontSize: '0.95rem' }}>
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div style={{ marginBottom: '0.5rem' }}>
                 <h3 style={{ 
                   fontSize: '1rem',
@@ -998,9 +1179,9 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                 gap: '1rem',
                 flexWrap: 'wrap'
               }}>
-                {(product.affiliateLink || product.productLink) && (
+                {product.affiliateLink && (
                   <button
-                    onClick={() => window.open(product.affiliateLink || product.productLink, '_blank')}
+                    onClick={() => window.open(product.affiliateLink, '_blank')}
                     style={{
                       background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                       color: 'white',
@@ -1035,6 +1216,43 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
                     Siteye Git
                   </button>
                 )}
+                
+                {/* Detaylı Bilgi Butonu */}
+                <button
+                  onClick={handleShowStats}
+                  style={{
+                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '1rem 2rem',
+                    borderRadius: '1rem',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    flex: '1',
+                    minWidth: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s ease',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.4)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 20px 40px -5px rgba(99, 102, 241, 0.6)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(99, 102, 241, 0.4)';
+                  }}
+                >
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  </svg>
+                  Detaylı Bilgi
+                </button>
                 
                 {/* Düzenle Butonu */}
                 <button
@@ -1546,7 +1764,7 @@ const ProductDetail = ({ favoriteProducts, likedProducts = [], onToggleFavorite,
             product={{
               productId: product.id,
               title: product.title,
-              uploadDate: product.shareDate || new Date().toISOString(),
+              uploadDate: product.created_at || product.shareDate || new Date().toISOString(),
               likes: product.likes || 0,
               clicks: 0, // Modal'da rastgele oluşturulacak
               siteVisits: 0, // Modal'da rastgele oluşturulacak

@@ -550,22 +550,6 @@ function AppContent() {
         </div>
       )}
       
-      {/* Gelişmiş hata yakalama */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '20px',
-          background: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          padding: '0.5rem',
-          borderRadius: '4px',
-          fontSize: '0.75rem',
-          zIndex: 1000
-        }}>
-          Dev Mode: Bağlantı izleme aktif
-        </div>
-      )}
       
            <div style={{ marginLeft: '50px', marginTop: '60px' }}>
         <Routes>

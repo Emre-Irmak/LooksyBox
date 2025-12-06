@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDarkMode } from '../contexts/DarkModeContext';
-import { productsWithUsers } from '../data/products';
 import ProductCard from './ProductCard';
+import { supabase } from '../lib/supabase';
+import { fetchProductsByUser } from '../utils/productService';
+import type { Product } from '../types/Product';
 
 interface User {
-  id: number;
+  id: string;
   name: string;
   avatar: string;
   verified: boolean;
+  email?: string;
 }
 
 const UserProfile = () => {
@@ -16,10 +19,11 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const { isDarkMode } = useDarkMode();
   const [user, setUser] = useState<User | null>(null);
-  const [userProducts, setUserProducts] = useState<any[]>([]);
-  const [sortedProducts, setSortedProducts] = useState<any[]>([]);
+  const [userProducts, setUserProducts] = useState<Product[]>([]);
+  const [sortedProducts, setSortedProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState<'popular' | 'recent'>('recent');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Component mount olduğunda scroll pozisyonunu sıfırla
@@ -28,24 +32,52 @@ const UserProfile = () => {
   }, []);
 
   useEffect(() => {
-    if (userId) {
-      // Kullanıcı bilgilerini bul
-      const foundUser = productsWithUsers.find(product => 
-        product.user?.id === parseInt(userId)
-      )?.user;
-      
-      if (foundUser) {
-        setUser(foundUser);
-        
-        // Bu kullanıcının paylaştığı tüm ürünleri bul
-        const products = productsWithUsers.filter(product => 
-          product.user?.id === parseInt(userId)
-        );
-        setUserProducts(products);
+    const loadUserData = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
       }
-      
-      setLoading(false);
-    }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Kullanıcı profil bilgisini çek
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, avatar_url')
+          .eq('id', userId)
+          .single();
+
+        if (profileError || !profileData) {
+          console.error('Kullanıcı profili bulunamadı:', profileError);
+          setError('Kullanıcı bulunamadı');
+          setLoading(false);
+          return;
+        }
+
+        // Kullanıcı bilgisini set et
+        setUser({
+          id: profileData.id,
+          name: profileData.full_name || profileData.email || 'Bilinmeyen Kullanıcı',
+          avatar: profileData.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+          verified: true,
+          email: profileData.email
+        });
+
+        // Kullanıcının paylaştığı ürünleri çek
+        const products = await fetchProductsByUser(userId);
+        setUserProducts(products);
+
+      } catch (err) {
+        console.error('Kullanıcı verileri yüklenirken hata:', err);
+        setError('Veriler yüklenirken bir hata oluştu');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
   }, [userId]);
 
   // Sıralama fonksiyonları
@@ -115,22 +147,25 @@ const UserProfile = () => {
         alignItems: 'center',
         height: '50vh',
         fontSize: '1.125rem',
-        color: '#6b7280'
+        color: isDarkMode ? '#9ca3af' : '#6b7280',
+        backgroundColor: isDarkMode ? '#111827' : 'transparent'
       }}>
         Yükleniyor...
       </div>
     );
   }
 
-  if (!user) {
+  if (error || !user) {
     return (
       <div style={{
         textAlign: 'center',
         padding: '4rem 2rem',
-        color: '#6b7280'
+        color: isDarkMode ? '#9ca3af' : '#6b7280',
+        backgroundColor: isDarkMode ? '#111827' : 'transparent',
+        minHeight: '100vh'
       }}>
-        <h2>Kullanıcı bulunamadı</h2>
-        <p>Bu kullanıcı mevcut değil veya silinmiş olabilir.</p>
+        <h2 style={{ color: isDarkMode ? '#f9fafb' : '#1f2937' }}>Kullanıcı bulunamadı</h2>
+        <p>{error || 'Bu kullanıcı mevcut değil veya silinmiş olabilir.'}</p>
         <button
           onClick={() => navigate('/')}
           style={{
@@ -142,7 +177,14 @@ const UserProfile = () => {
             borderRadius: '0.5rem',
             cursor: 'pointer',
             fontSize: '0.875rem',
-            fontWeight: '500'
+            fontWeight: '500',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#2563eb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#3b82f6';
           }}
         >
           Ana Sayfaya Dön
@@ -234,7 +276,7 @@ const UserProfile = () => {
             <h1 style={{
               fontSize: '1.875rem',
               fontWeight: '700',
-              color: '#1f2937',
+              color: isDarkMode ? '#f9fafb' : '#1f2937',
               margin: 0
             }}>
               {user.name}
@@ -258,11 +300,20 @@ const UserProfile = () => {
           </div>
           <p style={{
             fontSize: '1rem',
-            color: '#6b7280',
+            color: isDarkMode ? '#9ca3af' : '#6b7280',
             margin: 0
           }}>
             {userProducts.length} ürün paylaştı
           </p>
+          {user.email && (
+            <p style={{
+              fontSize: '0.875rem',
+              color: isDarkMode ? '#6b7280' : '#9ca3af',
+              margin: '0.25rem 0 0 0'
+            }}>
+              {user.email}
+            </p>
+          )}
         </div>
       </div>
 
@@ -279,7 +330,7 @@ const UserProfile = () => {
           <h2 style={{
             fontSize: '1.5rem',
             fontWeight: '600',
-            color: '#1f2937',
+            color: isDarkMode ? '#f9fafb' : '#1f2937',
             margin: 0
           }}>
             Paylaştığı Ürünler
@@ -366,12 +417,12 @@ const UserProfile = () => {
           <div style={{
             textAlign: 'center',
             padding: '3rem',
-            color: '#6b7280',
-            backgroundColor: '#f9fafb',
+            color: isDarkMode ? '#9ca3af' : '#6b7280',
+            backgroundColor: isDarkMode ? '#1f2937' : '#f9fafb',
             borderRadius: '0.75rem',
-            border: '1px solid #e5e7eb'
+            border: isDarkMode ? '1px solid rgba(75, 85, 99, 0.3)' : '1px solid #e5e7eb'
           }}>
-            <p style={{ fontSize: '1.125rem', margin: 0 }}>
+            <p style={{ fontSize: '1.125rem', margin: 0, color: isDarkMode ? '#d1d5db' : '#6b7280' }}>
               Bu kullanıcı henüz ürün paylaşmamış.
             </p>
           </div>

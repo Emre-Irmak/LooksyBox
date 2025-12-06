@@ -27,4 +27,9 @@ export interface Product {
   affiliateLink?: string; // Kullanıcıya özel affiliate link
   shareDate?: string;
   specs?: { [key: string]: string }; // Ürün özellikleri (key-value formatında)
+  hashtags?: string[]; // Hashtag listesi
+  coverImageIndex?: number; // Kapak fotoğrafı indeksi
+  created_at?: string; // Oluşturulma tarihi
+  updated_at?: string; // Güncellenme tarihi
+  created_by?: number; // Oluşturan kullanıcı ID
 }

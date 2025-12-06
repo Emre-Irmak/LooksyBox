@@ -35,17 +35,6 @@ const ProductCard = React.memo(({ product, isFavorite, isLiked, onToggleFavorite
       onAddToCart(product.id);
     }
   }, [onAddToCart, product.id]);
-
-  const handleLikeClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    console.log('❤️ Beğeni butonuna tıklandı!', { productId: product.id, onToggleLike: !!onToggleLike });
-    if (onToggleLike) {
-      console.log('🔄 onToggleLike çağrılıyor...');
-      onToggleLike(product.id);
-    } else {
-      console.log('❌ onToggleLike fonksiyonu yok!');
-    }
-  }, [onToggleLike, product.id]);
   
   return (
     <div 
@@ -370,51 +359,6 @@ const ProductCard = React.memo(({ product, isFavorite, isLiked, onToggleFavorite
             viewBox="0 0 24 24"
           >
             <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-          </svg>
-        </button>
-      )}
-
-      {/* Beğeni butonu */}
-      {onToggleLike && (
-        <button
-          onClick={handleLikeClick}
-          style={{
-            position: 'absolute',
-            top: '0.5rem',
-            right: onToggleFavorite ? '3.5rem' : '0.5rem',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            border: 'none',
-            borderRadius: '50%',
-            width: '2.5rem',
-            height: '2.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            zIndex: 10,
-            opacity: 0.7, // Başlangıçta yarı görünür
-            transform: 'scale(0.9)' // Başlangıçta biraz küçük
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 1)';
-            e.currentTarget.style.transform = 'scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '0';
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-            e.currentTarget.style.transform = 'scale(0.8)';
-          }}
-        >
-          <svg 
-            width="20" 
-            height="20" 
-            fill={isLiked ? "#ef4444" : "#9ca3af"} 
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
         </button>
       )}
